@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "amazon_receipts_cli",
+  "amazon_receipts_gui",
+  "amazon_receipts_lib"
+]
