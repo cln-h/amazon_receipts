@@ -1,27 +1,8 @@
 use std::collections::HashMap;
 use std::error::Error;
-use std::fs::File;
-use std::io::{self, Read};
-use zip::read::ZipArchive;
+use std::io::Read;
 
-#[derive(Debug)]
-pub struct CsvLine {
-    data: HashMap<String, String>,
-}
-
-impl CsvLine {
-    pub fn new(headers: Vec<String>, values: Vec<String>) -> Self {
-        let mut data = HashMap::new();
-
-        for (header, value) in headers.into_iter().zip(values) {
-            data.insert(header, value);
-        }
-
-        CsvLine { data }
-    }
-}
-
-pub fn read_csv_from_reader<R: Read>(
+fn read_csv_from_reader<R: Read>(
     reader: R,
     pick_headers: &[String],
 ) -> Result<Vec<HashMap<String, String>>, Box<dyn Error>> {
@@ -45,8 +26,8 @@ pub fn read_csv_from_reader<R: Read>(
 }
 
 // TODO: Modify this to handle subdirectories
-pub fn extract_file_from_zip(zip_file: &str, file_name: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-    let file = std::fs::File::open(zip_file)?;
+fn extract_file_from_zip(zip_filepath: &str, file_name: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+    let file = std::fs::File::open(zip_filepath)?;
     let mut archive = zip::ZipArchive::new(file)?;
 
     for i in 0..archive.len() {
@@ -60,4 +41,32 @@ pub fn extract_file_from_zip(zip_file: &str, file_name: &str) -> Result<Vec<u8>,
     }
 
     Err(format!("File '{}' not found in the zip archive", file_name).into())
+}
+
+pub fn build_receipts(zip_filepath: &str) -> Result<Vec<HashMap<String, String>>, Box<dyn std::error::Error>> {
+  let pick_headers = vec! [
+    "Order ID".to_string(),
+    "Order Date".to_string(),
+    "Currency".to_string(),
+    "Unit Price".to_string(),
+    "Unit Price Tax".to_string(),
+    "Shipping Charge".to_string(),
+    "Total Discounts".to_string(),
+    "Total Owed".to_string(),
+    "Shipment Item Subtotal".to_string(),
+    "Shipment Item Subtotal Tax".to_string(),
+    "Quantity".to_string(),
+    "Payment Instrument Type".to_string(),
+    "Shipping Address".to_string(),
+    "Billing Address".to_string(),
+    "Product Name".to_string(),
+  ];
+
+  // TODO: Is it possible for there to be multiple OrderHistory directories?
+  let full_filepath = zip_filepath.to_string() + "/Reatail.OrderHistory.1/Retail.OrderHistory.1.csv";
+  let file = extract_file_from_zip(&full_filepath, "Retail.OrderHistory.1.csv").unwrap();
+  let reader = std::io::Cursor::new(file);
+  let lines = read_csv_from_reader(reader, &pick_headers);
+
+  lines
 }
